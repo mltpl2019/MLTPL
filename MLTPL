@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>टर्मिनल सुरक्षा ट्रेनिंग</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #e9ecef; color: #333; }
+        #app-container { max-width: 450px; margin: 0 auto; background: white; min-height: 100vh; padding: 20px; box-sizing: border-box; text-align: center; box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+        h2 { color: #002d72; margin-top: 10px; margin-bottom: 25px; }
+        
+        #verify-container { margin-top: 10px; }
+        input[type="text"] { width: 90%; padding: 15px; font-size: 16px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; text-transform: uppercase; font-weight: bold; }
+        #status-msg { margin-top: 15px; font-weight: bold; }
+
+        #location-status { display: none; font-size: 16px; font-weight: bold; color: #d9534f; margin: 20px 0; padding: 15px; background: #fdf5f5; border: 1px solid #d9534f; border-radius: 5px; line-height: 1.5; }
+        
+        #video-wrapper { display: none; position: relative; width: 100%; aspect-ratio: 16 / 9; margin-top: 20px; background: #000; border-radius: 8px; overflow: hidden; }
+        #player { width: 100%; height: 100%; }
+        #video-shield { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; background: transparent; }
+        
+        /* QUIZ STYLES */
+        #quiz-container { display: none; margin-top: 20px; text-align: left; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #ccc; }
+        .question { margin-bottom: 20px; }
+        .question p { font-weight: bold; margin-bottom: 10px; }
+        .question label { display: block; margin-bottom: 8px; font-size: 15px; cursor: pointer; }
+        .question input[type="radio"] { margin-right: 10px; transform: scale(1.2); }
+
+        #form-container { display: none; margin-top: 20px; }
+        iframe.gform { width: 100%; height: 600px; border: none; }
+        
+        .btn { padding: 15px 30px; font-size: 18px; background-color: #0056b3; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
+        .btn:disabled { background-color: #999; }
+        #play-btn { display: none; margin-top: 15px; }
+        
+        .success-box { background-color: #d4edda; color: #155724; padding: 20px; border-radius: 8px; border: 1px solid #c3e6cb; margin-top: 20px; text-align: center; line-height: 1.5; }
+        
+        .instruction-box { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; margin-bottom: 20px; text-align: left; border-radius: 5px; }
+        .instruction-box h4 { color: #856404; margin-top: 0; margin-bottom: 10px; font-size: 16px; }
+        .instruction-box ul { color: #856404; font-size: 14px; padding-left: 20px; margin: 0; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <h2>टर्मिनल सुरक्षा ट्रेनिंग</h2>
+        
+        <!-- STEP 1: Instructions & License Input -->
+        <div id="verify-container">
+            
+            <!-- NEW INSTRUCTION BOX FOR DRIVERS -->
+            <div class="instruction-box">
+                <h4>⚠️ शुरू करने से पहले ध्यान दें:</h4>
+                <ul>
+                    <li>अपने फोन का <b>इंटरनेट (Mobile Data)</b> चालू रखें।</li>
+                    <li>अपने फोन की <b>लोकेशन (GPS)</b> चालू रखें।</li>
+                    <li>जब स्क्रीन पर लोकेशन मांगे, तो <b>'Allow'</b> पर क्लिक करें।</li>
+                    <li>वीडियो को बिना स्किप किए <b>पूरा देखें</b>।</li>
+                    <li>वीडियो के बाद 10 सवालों का टेस्ट होगा (पास होने के लिए <b>8 सही जवाब</b> अनिवार्य हैं)।</li>
+                </ul>
+            </div>
+
+            <p style="font-weight: bold; color: #002d72;">अपनी ट्रेनिंग शुरू करने के लिए लाइसेंस दर्ज करें:</p>
+            
+            <input type="text" id="license-input" placeholder="लाइसेंस नंबर दर्ज करें (DL Number)" required autocomplete="off">
+            
+            <button id="check-btn" class="btn" onclick="checkDatabase()">आगे बढ़ें</button>
+            <div id="status-msg"></div>
+        </div>
+
+        <div id="location-status"></div>
+
+        <!-- STEP 2: Video Panel -->
+        <div id="video-wrapper">
+            <div id="video-shield"></div> 
+            <div id="player"></div>
+        </div>
+        <button id="play-btn" class="btn">वीडियो शुरू करें</button>
+
+        <!-- STEP 3: The Gateway Quiz -->
+        <div id="quiz-container">
+            <h3 style="color: #002d72; margin-top: 0;">सुरक्षा प्रश्नोत्तरी (Safety Quiz)</h3>
+            <p style="color: #d9534f; font-weight: bold; margin-bottom: 20px;">पास होने के लिए 10 में से कम से कम 8 सवालों के सही जवाब दें।</p>
+            
+            <!-- Questions will be injected here automatically by JavaScript -->
+            <div id="dynamic-questions"></div>
+
+            <button class="btn" onclick="submitQuiz()">जवाब सबमिट करें</button>
+        </div>
+
+        <!-- STEP 4: Success & Form -->
+        <div id="form-container">
+            <div class="success-box" style="margin-bottom: 20px;">
+                <h3 style="margin-top:0; color: #155724;">🎉 ट्रेनिंग पूरी हुई!</h3>
+                <p>आप एक सुरक्षित और प्रशिक्षित ड्राइवर हैं।</p>
+                <p>कृपया नीचे अपना डेटा सबमिट करें।</p>
+            </div>
+            
+            <!-- Google Form Iframe -->
+            <iframe id="gform-iframe" class="gform" src="https://docs.google.com/forms/d/e/1FAIpQLSdlLC04kRj8tT4mE4QiepU_Jz1JtS8aGKjwvyHdDqO20xLvcw/viewform?embedded=true"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION VARIABLES 
+        // ==========================================
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfMEYOdg7vOvLl5jjeJbF0Gf4KadCm7MAPtX9Y8oShNxgyWyvl9NUoHmJtD1TkFuPKWg/exec';
+        const TARGET_LAT = 22.737617; 
+        const TARGET_LNG = 69.707878; 
+        const MAX_RADIUS_METERS = 1500; 
+        // ==========================================
+
+        const verifyContainer = document.getElementById('verify-container');
+        const statusMsg = document.getElementById('status-msg');
+        const locStatus = document.getElementById('location-status');
+        const videoWrapper = document.getElementById('video-wrapper');
+        const playBtn = document.getElementById('play-btn');
+        const quizContainer = document.getElementById('quiz-container');
+        const dynamicQuestionsDiv = document.getElementById('dynamic-questions');
+        const formContainer = document.getElementById('form-container');
+        const licenseInput = document.getElementById('license-input');
+        
+        let globalLicenseNumber = "";
+
+        // ==========================================
+        // QUESTION BANK (15 Questions)
+        // ==========================================
+        const questionBank = [
+            { q: "टर्मिनल के अंदर गाड़ी की स्पीड लिमिट क्या है?", opts: ["30 km/h", "10 km/h", "50 km/h"], ans: 1 },
+            { q: "आपातकालीन स्थिति (इमरजेंसी) होने पर आप क्या करेंगे?", opts: ["घबराकर इधर-उधर भागेंगे", "अपनी गाड़ी लेकर तुरंत बाहर भागेंगे", "सुरक्षित असेंबली पॉइंट पर जाएंगे"], ans: 2 },
+            { q: "LPG लोडिंग/अनलोडिंग से पहले गाड़ी को 'अर्थिंग' (Earthing) से क्यों जोड़ा जाता है?", opts: ["गाड़ी को साफ रखने के लिए", "स्टैटिक बिजली (Sparks) और आग से बचने के लिए", "गाड़ी का माइलेज बढ़ाने के लिए"], ans: 1 },
+            { q: "लोडिंग के दौरान आप कहाँ खड़े रहेंगे?", opts: ["टैंकर के पास", "गाड़ी की केबिन के अंदर सोएंगे", "कैंटीन में चाय पीने चले जाएंगे"], ans: 0 },
+            { q: "गाड़ी को लोडिंग पॉइंट पर खड़ी करने के बाद सबसे पहले क्या करेंगे?", opts: ["इंजन चालू छोड़ देंगे", "टायरों में व्हील चोक (गुटके) लगाएंगे", "तुरंत केबिन से बाहर कूद जाएंगे"], ans: 1 },
+            { q: "गाड़ी में अर्थिंग (Earthing) लगाने से पहले क्या करना अनिवार्य है?", opts: ["एसी (AC) चालू करना", "केबिन की लाइट जलाना", "मास्टर स्विच (बैटरी) बंद करना"], ans: 2 },
+            { q: "लोडिंग के दौरान आप गाड़ी की चाबी (Key) कहाँ रखेंगे?", opts: ["अपनी जेब में रखेंगे", "टर्मिनल में तय की गई (फिक्स) जगह पर रखेंगे", "गाड़ी के स्टीयरिंग पर लगी छोड़ देंगे"], ans: 1 },
+            { q: "LPG गैस से जुड़े मुख्य खतरे (Hazards) क्या हैं?", opts: ["सिर्फ धुंआ निकलना", "गाड़ी का माइलेज कम होना", "गैस लीक, आग और धमाका (Explosion)"], ans: 2 },
+            { q: "गाड़ी में आग बुझाने वाला यंत्र (Fire Extinguisher) कहाँ रखा होना चाहिए?", opts: ["टूलबॉक्स के अंदर ताला लगाकर", "ऐसी जगह जहाँ से इमरजेंसी में तुरंत निकाला जा सके", "सीट के एकदम नीचे जहाँ हाथ ना पहुंचे"], ans: 1 },
+            { q: "क्या टर्मिनल के अंदर पान, मावा या गुटखा खा सकते हैं?", opts: ["हाँ, छुपकर खा सकते हैं", "हाँ, सिर्फ अपनी गाड़ी के अंदर", "नहीं, यह सख्त मना है"], ans: 2 },
+            { q: "लोडिंग के लिए आप कौन से स्पैनर (Tools) का उपयोग करेंगे?", opts: ["लोहे के साधारण टूल्स", "नॉन-स्पार्किंग टूल्स (NST)", "कोई भी पाना जो गाड़ी में हो"], ans: 1 },
+            { q: "गाड़ी को लोडिंग पॉइंट पर ले जाने से पहले आप क्या चेक करेंगे?", opts: ["गाड़ी का म्यूजिक सिस्टम और एसी", "टैंकर का बाहरी रंग", "टैंकर का प्रेशर, तापमान और वाल्व की स्थिति"], ans: 2 },
+            { q: "टर्मिनल के अंदर कौन से PPE (सुरक्षा उपकरण) पहनना अनिवार्य है?", opts: ["चप्पल और साधारण कपड़े", "हेलमेट, सेफ्टी शूज, दस्ताने और रिफ्लेक्टिव जैकेट", "केवल चश्मा और टोपी"], ans: 1 },
+            { q: "क्या आपको दिया गया एक्सेस/आईडी कार्ड किसी और ड्राइवर को देना चाहिए?", opts: ["हाँ, अगर वह अपना कार्ड भूल गया हो", "हाँ, अपने दोस्त को दे सकते हैं", "नहीं, अपना कार्ड किसी को भी देना सख्त मना है"], ans: 2 },
+            { q: "सिक्योरिटी द्वारा दी गई चेकलिस्ट में आपको क्या चेक करना है?", opts: ["कैंटीन का मेनू और चाय का समय", "टैंकर नंबर, कार्ड नंबर और लोडिंग की मात्रा", "टर्मिनल का नक्शा (Map)"], ans: 1 }
+        ];
+
+        let currentQuizQuestions = [];
+
+        // ==========================================
+        // FEATURE: REMEMBER ME & SMART TYPING
+        // ==========================================
+        window.onload = function() {
+            if(localStorage.getItem('savedLicense')) licenseInput.value = localStorage.getItem('savedLicense');
+        };
+        licenseInput.addEventListener('input', function(e) { this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+
+        // ==========================================
+        // STEP 1: DATABASE CHECK
+        // ==========================================
+        function checkDatabase() {
+            globalLicenseNumber = licenseInput.value.trim();
+            if(!globalLicenseNumber) { 
+                alert("कृपया अपना लाइसेंस नंबर दर्ज करें।"); 
+                return; 
+            }
+            localStorage.setItem('savedLicense', globalLicenseNumber);
+            document.getElementById('check-btn').innerText = "डेटाबेस की जांच हो रही है...";
+            document.getElementById('check-btn').disabled = true;
+
+            fetch(`${GOOGLE_SCRIPT_URL}?license=${encodeURIComponent(globalLicenseNumber)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if(data.valid === true) {
+                        verifyContainer.style.display = 'none';
+                        const successMsg = "बधाई हो! आप एक सुरक्षित और प्रशिक्षित ड्राइवर हैं। आपकी ट्रेनिंग मान्य है। कृपया सुरक्षा गेट की ओर बढ़ें।";
+                        document.getElementById('app-container').innerHTML += `<div class="success-box">
+                            <h3 style="margin-top:0;">✅ प्रवेश स्वीकृत</h3>
+                            <p>लाइसेंस: <strong>${globalLicenseNumber}</strong></p>
+                            <p>${successMsg}</p>
+                        </div>`;
+                    } else {
+                        verifyContainer.style.display = 'none';
+                        startGPSCheck();
+                    }
+                })
+                .catch(error => {
+                    statusMsg.innerText = "नेटवर्क त्रुटि। कृपया पुनः प्रयास करें।";
+                    document.getElementById('check-btn').innerText = "आगे बढ़ें";
+                    document.getElementById('check-btn').disabled = false;
+                });
+        }
+
+        // ==========================================
+        // STEP 2: GPS LOGIC
+        // ==========================================
+        function startGPSCheck() {
+            locStatus.style.display = 'block';
+            locStatus.innerHTML = `GPS लोकेशन जांची जा रही है... कृपया स्क्रीन पर <b>'Allow'</b> पर क्लिक करें।`;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const dist = calculateDistance(position.coords.latitude, position.coords.longitude, TARGET_LAT, TARGET_LNG);
+                        if (dist <= MAX_RADIUS_METERS) {
+                            locStatus.style.display = 'none';
+                            videoWrapper.style.display = 'block';
+                            playBtn.style.display = 'block';
+                        } else {
+                            locStatus.innerHTML = `लोकेशन त्रुटि: आप गेट से ${Math.round(dist)} मीटर दूर हैं। आपका सुरक्षा गेट पर होना अनिवार्य है।`;
+                        }
+                    },
+                    function(error) { 
+                        if (error.code === error.PERMISSION_DENIED) {
+                            locStatus.innerHTML = `<span style="font-size: 18px;"><b>त्रुटि: लोकेशन ब्लॉक है (Deny)</b></span><br><br>
+                            <b>इसे ठीक करने के लिए:</b><br>
+                            1. URL बार में <b>ताला (Lock 🔒)</b> पर क्लिक करें।<br>
+                            2. <b>Permissions</b> में जाएं।<br>
+                            3. Location को <b>Allow</b> करें।<br>
+                            4. इस पेज को <b>रिफ्रेश</b> करें।`;
+                        } else {
+                            locStatus.innerHTML = `त्रुटि: आपका GPS बंद है या सिग्नल नहीं मिल रहा है। कृपया फोन की लोकेशन चालू करें।`;
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                locStatus.innerText = "आपके फोन में लोकेशन समर्थित नहीं है।";
+            }
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; const φ1 = lat1 * Math.PI / 180; const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180; const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+        }
+
+        // ==========================================
+        // YOUTUBE ENGINE
+        // ==========================================
+        var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        var player;
+        
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                videoId: 'Ju-K6c7FiMw',
+                playerVars: { 'playsinline': 1, 'controls': 0, 'disablekb': 1, 'rel': 0, 'modestbranding': 1 },
+                events: { 'onStateChange': onPlayerStateChange }
+            });
+        }
+
+        playBtn.addEventListener('click', function() { player.playVideo(); this.style.display = 'none'; });
+
+        function onPlayerStateChange(event) {
+            // WHEN VIDEO ENDS, GENERATE SHUFFLED QUIZ AND SHOW IT
+            if (event.data == YT.PlayerState.ENDED) {
+                generateRandomQuiz();
+                videoWrapper.style.display = 'none';
+                quizContainer.style.display = 'block';
+            }
+        }
+
+        // ==========================================
+        // STEP 3: DYNAMIC SHUFFLE LOGIC
+        // ==========================================
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function generateRandomQuiz() {
+            // Shuffle the 15 questions
+            let shuffledBank = [...questionBank];
+            shuffleArray(shuffledBank);
+            
+            // Pick the first 10 questions
+            currentQuizQuestions = shuffledBank.slice(0, 10);
+            
+            // Clear existing HTML
+            dynamicQuestionsDiv.innerHTML = "";
+            
+            // Build the HTML for the 10 questions
+            currentQuizQuestions.forEach((item, index) => {
+                let questionHTML = `
+                <div class="question">
+                    <p>${index + 1}. ${item.q}</p>
+                    <label><input type="radio" name="q${index}" value="0"> ${item.opts[0]}</label>
+                    <label><input type="radio" name="q${index}" value="1"> ${item.opts[1]}</label>
+                    <label><input type="radio" name="q${index}" value="2"> ${item.opts[2]}</label>
+                </div>`;
+                dynamicQuestionsDiv.innerHTML += questionHTML;
+            });
+        }
+
+        // ==========================================
+        // STEP 4: QUIZ VALIDATION & SUBMISSION
+        // ==========================================
+        function submitQuiz() {
+            let score = 0;
+            let allAnswered = true;
+
+            // Check all 10 questions
+            for (let i = 0; i < 10; i++) {
+                const selectedAns = document.querySelector(`input[name="q${i}"]:checked`);
+                
+                // If any question is left blank, stop everything
+                if (!selectedAns) {
+                    allAnswered = false;
+                    break;
+                }
+                
+                // If answered correctly, increase score
+                if (parseInt(selectedAns.value) === currentQuizQuestions[i].ans) {
+                    score++;
+                }
+            }
+
+            // BLANK QUESTION VALIDATION
+            if (!allAnswered) {
+                alert("कृपया सभी सवालों के उत्तर दें। सभी 10 सवालों का उत्तर देना अनिवार्य है।");
+                return; // Stop here
+            }
+
+            // PASS / FAIL LOGIC (8 out of 10)
+            if (score >= 8) {
+                // PASS
+                quizContainer.style.display = 'none';
+                formContainer.style.display = 'block';
+            } else {
+                // FAIL
+                alert(`आपके पास पर्याप्त ट्रेनिंग की जानकारी नहीं है! आपने 10 में से सिर्फ ${score} का सही जवाब दिया। पास होने के लिए कम से कम 8 सही जवाब चाहिए। कृपया वीडियो को फिर से ध्यान से देखें।`);
+                
+                quizContainer.style.display = 'none';
+                videoWrapper.style.display = 'block';
+                
+                // Restart Video
+                player.seekTo(0);
+                player.playVideo();
+            }
+        }
+    </script>
+</body>
+</html>
